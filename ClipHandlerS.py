@@ -10,6 +10,8 @@ from win32con import *
 
 from datetime import datetime, timedelta
 
+from enum import Enum
+
 @dataclass
 class BITMAPFILEHEADER(ctypes.Structure):
     _pack_ = 1  # structure field byte alignment
@@ -40,12 +42,17 @@ class BITMAPINFOHEADER(ctypes.Structure):
     ]
 SIZEOF_BITMAPINFOHEADER = ctypes.sizeof(BITMAPINFOHEADER)
 
+class ClipTypes(Enum):
+    IMAGE = 1,
+    TEXT = 2,
+    FILES = 3
+
 class Clipboard:
     _prevData = None
 
     @dataclass
     class Clip:
-        type: str
+        type: ClipTypes
         value: Union[str, List[Path], bytes]
     
     def __init__(self,
@@ -85,11 +92,11 @@ class Clipboard:
 
         if self._on_update:
             self._on_update(clip)
-        elif clip.type == 'text' and self._on_text:
+        elif clip.type == ClipTypes.TEXT and self._on_text:
             self._on_text(clip.value)
-        elif clip.type == 'files' and self._on_text:
+        elif clip.type == ClipTypes.FILES and self._on_text:
             self._on_files(clip.value)
-        elif clip.type == 'image' and self._on_image:
+        elif clip.type == ClipTypes.IMAGE and self._on_image:
             self._on_image(clip.value)
     
     @staticmethod
@@ -105,11 +112,11 @@ class Clipboard:
                 return None
 
             if files := get_formatted(win32con.CF_HDROP):
-                return Clipboard.Clip('files', [Path(f) for f in files])
+                return Clipboard.Clip(ClipTypes.FILES, [Path(f) for f in files])
             elif text := get_formatted(win32con.CF_UNICODETEXT):
-                return Clipboard.Clip('text', text)
+                return Clipboard.Clip(ClipTypes.TEXT, text)
             elif text_bytes := get_formatted(win32con.CF_TEXT):
-                return Clipboard.Clip('text', text_bytes.decode())
+                return Clipboard.Clip(ClipTypes.TEXT, text_bytes.decode())
             elif bitmap_handle := get_formatted(win32con.CF_DIB):
                 bmih = BITMAPINFOHEADER()
                 ctypes.memmove(ctypes.pointer(bmih), bitmap_handle, SIZEOF_BITMAPINFOHEADER)
@@ -122,7 +129,7 @@ class Clipboard:
                 bmfh.bfSize = SIZEOF_BITMAPFILEHEADER + len(bitmap_handle)
                 SIZEOF_COLORTABLE = 0
                 bmfh.bfOffBits = SIZEOF_BITMAPFILEHEADER + SIZEOF_BITMAPINFOHEADER + SIZEOF_COLORTABLE
-                return Clipboard.Clip('image', bytes(bmfh)+bitmap_handle)
+                return Clipboard.Clip(ClipTypes.IMAGE, bytes(bmfh)+bitmap_handle)
             return None
         except Exception as e:
             print(f"Clipboard exception caused: {str(e)}")
