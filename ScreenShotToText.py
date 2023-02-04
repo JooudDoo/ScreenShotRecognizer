@@ -55,6 +55,8 @@ class ClipProcessor():
         self.TEXT_PROCESSED = 0
         self.IMAGE_PROCESSED = 0
         self._processingTypes = ClipProcessor.ALL_CLIP_TYPES
+        self.activeTexter = Texter()
+        self.activeTexter.setTesseractConfig(1, 1)
     
     def setTypes(self, types : list[ClipTypes]):
         self._processingTypes = types
@@ -78,9 +80,7 @@ class ClipProcessor():
         self.IMAGE_PROCESSED += 1
         img = Image.open(io.BytesIO(clip))
         img_jpg = img.convert('RGB')
-        TexterR = Texter()
-        TexterR.setTesseractConfig(1, 1)
-        print(TexterR(img_jpg).strip())
+        print(self.activeTexter(img_jpg).strip())
 
     @clipPrinter(ClipTypes.TEXT)
     def processText(self, clip):
