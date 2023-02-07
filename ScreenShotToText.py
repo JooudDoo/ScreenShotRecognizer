@@ -11,7 +11,7 @@ DEBUG = True
 
 class ClipProcessor():
     
-    ALL_CLIP_TYPES = [ClipTypes.IMAGE, ClipTypes.TEXT]
+    ALL_CLIP_TYPES = [ClipTypes.IMAGE, ClipTypes.TEXT, ClipTypes.RGBIMAGE]
 
     @dataclass
     class _ClipPrinterStruct:
@@ -30,6 +30,12 @@ class ClipProcessor():
                     ClipTypes.TEXT: _ClipPrinterStruct(
                                                     name="text",
                                                     rowStartDelimeter="=",
+                    ),
+                    ClipTypes.RGBIMAGE: _ClipPrinterStruct(
+                                                    name="rgbimage",
+                                                    startMessage="Accepted image from clipboard",
+                                                    endMessage="Image processed",
+                                                    rowStartDelimeter='_',
                     )}
 
     def clipPrinter(type: ClipTypes):
@@ -72,6 +78,8 @@ class ClipProcessor():
             return self.processImage(clip.value)
         elif clip.type == ClipTypes.TEXT:
             return self.processText(clip.value)
+        elif clip.type == ClipTypes.RGBIMAGE:
+            return self.processImage(clip.value)
         else:
             return None
 
@@ -97,5 +105,4 @@ if __name__ == '__main__':
     if DEBUG: print(f"Clipboard daemon state: {clipThread}")
     clipThread.start()
     if DEBUG: print(f"Clipboard daemon state set to 'work'")
-    while True:
-        pass
+    while True: pass

@@ -8,22 +8,30 @@ pytesseract.tesseract_cmd = path_to_tesseract
 
 tesseract_config = r'--oem 1 --psm 1'
 
-SCALE_COEFF = 5
+SCALE_COEFF : int = 5
 
 class Texter():
 
     def __init__(self):
         pass
 
-    def __call__(self, img) -> str:
+    @staticmethod
+    def _extractContoursFromImage(img):
         cvimg = np.array(img)
-        h, w, _ = cvimg.shape
-        cvimg = cv2.resize(cvimg, (int(w*SCALE_COEFF), int(h*SCALE_COEFF)))
+        h,w,_ = cvimg.shape
+        cvimg = cv2.resize(cvimg, (w * SCALE_COEFF, h * SCALE_COEFF))
         grayImg = cv2.cvtColor(cvimg, cv2.COLOR_RGB2GRAY)
-        ret, thresh1 = cv2.threshold(grayImg, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY_INV)
-        rect_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (12, 12))
-        dilation = cv2.dilate(thresh1, rect_kernel, iterations = 1)
-        contours, hierarchy = cv2.findContours(dilation, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        _, thresh = cv2.threshold(grayImg, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY_INV)
+        dilation = cv2.dilate(
+            thresh,
+            cv2.getStructuringElement(cv2.MORPH_RECT, (12, 12)),
+            iterations=3
+        )
+        contours, _ = cv2.findContours(dilation, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        return contours, grayImg
+
+    def __call__(self, img) -> str:
+        contours, cvimg = self._extractContoursFromImage(img)
         resultText = ''
         for cnt in contours:
             x,y,w,h = cv2.boundingRect(cnt)
@@ -34,6 +42,11 @@ class Texter():
         return resultText
     
     @staticmethod
-    def setTesseractConfig(oem : int, psm : int) -> str:
+    def setTesseractConfig(oem : int, psm : int) -> None:
         global tesseract_config
         tesseract_config = f"--oem {oem} --psm {psm}"
+
+    @staticmethod
+    def setScaleCoefficent(newCoef : int) -> None:
+        global SCALE_COEFF
+        SCALE_COEFF = newCoef if newCoef > 0 else None

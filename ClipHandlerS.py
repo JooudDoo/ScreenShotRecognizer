@@ -44,6 +44,7 @@ SIZEOF_BITMAPINFOHEADER = ctypes.sizeof(BITMAPINFOHEADER)
 
 class ClipTypes(Enum):
     IMAGE = 1,
+    RGBIMAGE = 10,
     TEXT = 2,
     FILES = 3
 
@@ -120,6 +121,8 @@ class Clipboard:
             elif bitmap_handle := get_formatted(win32con.CF_DIB):
                 bmih = BITMAPINFOHEADER()
                 ctypes.memmove(ctypes.pointer(bmih), bitmap_handle, SIZEOF_BITMAPINFOHEADER)
+                if bmih.biCompression == 0:
+                    return Clipboard.Clip(ClipTypes.RGBIMAGE, bitmap_handle)
                 if bmih.biCompression != BI_BITFIELDS:  # RGBA?
                     print('insupported compression type {}'.format(bmih.biCompression))
                     return None
